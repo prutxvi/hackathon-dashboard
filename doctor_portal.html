@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoBook-AI - Physician Command Center</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- FullCalendar Library -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --primary-dark: #3730A3;
+            --bg-body: #F1F5F9;
+            --bg-card: #FFFFFF;
+            --text-main: #0F172A;
+            --text-muted: #64748B;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg-body); color: var(--text-main); min-height: 100vh; padding-bottom: 40px; }
+
+        /* --- ANIMATIONS --- */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); } }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; animation: fadeIn 0.6s ease-out; }
+
+        /* --- HEADER --- */
+        .header {
+            background: var(--bg-card); padding: 16px 24px; border-radius: 16px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            box-shadow: var(--shadow-sm); margin-bottom: 24px;
+        }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .logo { width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; }
+        .brand h1 { font-size: 18px; font-weight: 700; }
+        .brand span { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+        .header-actions { display: flex; gap: 16px; align-items: center; }
+        .user-profile { display: flex; align-items: center; gap: 10px; padding-left: 20px; border-left: 1px solid #E2E8F0; }
+        .avatar { width: 36px; height: 36px; background: #E0E7FF; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+
+        /* --- STATS GRID --- */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 20px; border-radius: 16px; box-shadow: var(--shadow-sm); transition: var(--transition); border: 1px solid transparent; position: relative; overflow: hidden; }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+        
+        .stat-card.blue::before { background: var(--primary); }
+        .stat-card.red::before { background: var(--danger); }
+        .stat-card.yellow::before { background: var(--warning); }
+        .stat-card.green::before { background: var(--success); }
+
+        .stat-val { font-size: 32px; font-weight: 700; margin: 10px 0 4px; }
+        .stat-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+        .icon-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; margin-bottom: 8px; }
+        
+        /* --- MAIN CONTENT --- */
+        .content-wrapper { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+        
+        /* Queue Section */
+        .queue-section { background: white; border-radius: 16px; padding: 24px; box-shadow: var(--shadow-sm); min-height: 600px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .title-group { display: flex; align-items: center; gap: 12px; }
+        .live-badge { padding: 4px 12px; background: #ECFDF5; color: var(--success); border-radius: 99px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+        .dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+
+        .call-list { display: flex; flex-direction: column; gap: 16px; }
+        
+        .call-card { 
+            border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; 
+            transition: var(--transition); cursor: pointer; position: relative; 
+            background: white; overflow: hidden;
+        }
+        .call-card:hover { border-color: var(--primary-light); transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        
+        .call-card.EMERGENCY { border-left: 4px solid var(--danger); background: #FEF2F233; }
+        .call-card.PRIORITY { border-left: 4px solid var(--warning); background: #FFFBEB33; }
+        .call-card.ROUTINE { border-left: 4px solid var(--success); background: #ECFDF533; }
+
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .phone { font-weight: 600; font-size: 15px; color: var(--text-main); }
+        .meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 10px; }
+        
+        .tag { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .tag-EMERGENCY { background: #FEE2E2; color: var(--danger); }
+        .tag-PRIORITY { background: #FEF3C7; color: var(--warning); }
+        .tag-ROUTINE { background: #ECFDF5; color: var(--success); }
+
+        .ai-box { 
+            margin-top: 12px; padding: 12px; background: #F8FAFC; border-radius: 8px; 
+            font-size: 13px; line-height: 1.5; color: #334155; border-left: 2px solid var(--primary);
+            display: none; 
+        }
+        .call-card.expanded .ai-box { display: block; animation: fadeIn 0.3s ease; }
+
+        .actions { margin-top: 12px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-outline { background: white; border: 1px solid #E2E8F0; color: var(--text-main); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* --- SIDEBAR --- */
+        .sidebar { display: flex; flex-direction: column; gap: 24px; }
+        .widget { background: white; padding: 24px; border-radius: 16px; box-shadow: var(--shadow-sm); }
+        
+        .cal-btn {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); transition: var(--transition);
+        }
+        .cal-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4); }
+
+        .appt-list { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .appt-item { padding: 12px; background: #F8FAFC; border-radius: 8px; border-left: 3px solid var(--primary); font-size: 13px; }
+        .appt-time { font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+
+        /* --- CALENDAR MODAL (PREMIUM) --- */
+        .modal-overlay { 
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        
+        .modal-large { 
+            background: white; width: 90%; max-width: 1000px; height: 85vh; border-radius: 24px; 
+            padding: 0; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.active .modal-large { transform: scale(1); }
+
+        .modal-header { padding: 20px 30px; border-bottom: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center; background: #F8FAFC; }
+        .close-btn { background: none; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+        .close-btn:hover { color: var(--danger); transform: rotate(90deg); }
+
+        .calendar-body { flex: 1; padding: 20px; overflow: hidden; }
+        
+        /* FullCalendar Customization */
+        .fc-theme-standard td, .fc-theme-standard th { border-color: #E2E8F0; }
+        .fc-header-toolbar { margin-bottom: 1.5em !important; }
+        .fc-button-primary { background-color: var(--primary) !important; border-color: var(--primary) !important; }
+        .fc-event { background-color: var(--primary-light); border: none; border-radius: 4px; padding: 2px 4px; }
+        .fc-timegrid-slot { height: 40px !important; } /* Taller slots */
+
+        /* Schedule Modal (Small) */
+        .modal-small { width: 400px; height: auto; padding: 30px; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 10px; border: 1px solid #E2E8F0; border-radius: 8px; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header class="header">
+        <div class="brand">
+            <div class="logo"><i class="fas fa-heartbeat"></i></div>
+            <div><h1>AutoBook-AI</h1><span>Physician Command Center</span></div>
+        </div>
+        <div class="header-actions">
+            <div class="user-profile">
+                <div style="text-align: right;">
+                    <div style="font-weight: 600; font-size: 14px;">Dr. Pruthvi Raj</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Chief Resident</div>
+                </div>
+                <div class="avatar">PR</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card blue">
+            <div class="icon-box" style="background: #E0E7FF; color: var(--primary);"><i class="fas fa-phone"></i></div>
+            <div class="stat-val" id="stat-total">0</div>
+            <div class="stat-label">Total Calls Today</div>
+        </div>
+        <div class="stat-card red">
+            <div class="icon-box" style="background: #FEE2E2; color: var(--danger);"><i class="fas fa-ambulance"></i></div>
+            <div class="stat-val" id="stat-emergency">0</div>
+            <div class="stat-label">Critical Emergencies</div>
+        </div>
+        <div class="stat-card yellow">
+            <div class="icon-box" style="background: #FEF3C7; color: var(--warning);"><i class="fas fa-clock"></i></div>
+            <div class="stat-val" id="stat-priority">0</div>
+            <div class="stat-label">Priority Review</div>
+        </div>
+        <div class="stat-card green">
+            <div class="icon-box" style="background: #D1FAE5; color: var(--success);"><i class="fas fa-check"></i></div>
+            <div class="stat-val" id="stat-routine">0</div>
+            <div class="stat-label">Routine Inquiries</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-wrapper">
+        <!-- Queue Section -->
+        <div class="queue-section">
+            <div class="section-header">
+                <div class="title-group">
+                    <h2>Patient Triage Queue</h2>
+                    <div class="live-badge"><div class="dot"></div> Live</div>
+                </div>
+            </div>
+            
+            <div class="call-list" id="calls-container">
+                <!-- Calls Injected Here -->
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="widget">
+                <button class="cal-btn" onclick="openCalendarModal()">
+                    <i class="fas fa-calendar-alt"></i> Open Full Schedule
+                </button>
+                
+                <div style="margin-top: 24px;">
+                    <h3 style="font-size: 15px; margin-bottom: 12px;">Upcoming Callbacks</h3>
+                    <div class="appt-list" id="sidebar-appts">
+                        <!-- Appts injected here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="widget" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
+                <h3 style="font-size: 15px; margin-bottom: 8px;">System Status</h3>
+                <div style="font-size: 13px; opacity: 0.8; display: flex; justify-content: space-between;">
+                    <span>AI Analysis</span> <span style="color: #4ade80;">Active</span>
+                </div>
+                <div style="font-size: 13px; opacity: 0.8; display: flex; justify-content: space-between; margin-top: 6px;">
+                    <span>vAPI Gateway</span> <span style="color: #4ade80;">Connected</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LARGE CALENDAR MODAL -->
+<div class="modal-overlay" id="calendar-modal">
+    <div class="modal-large">
+        <div class="modal-header">
+            <h2 style="font-size: 20px;">Doctor's Schedule</h2>
+            <button class="close-btn" onclick="closeCalendarModal()">&times;</button>
+        </div>
+        <div class="calendar-body">
+            <div id="calendar"></div>
+        </div>
+    </div>
+</div>
+
+<!-- BOOKING MODAL -->
+<div class="modal-overlay" id="booking-modal">
+    <div class="modal-large modal-small" style="height: auto;">
+        <h3 style="margin-bottom: 20px;">Schedule Callback</h3>
+        <p id="booking-patient" style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px;"></p>
+        
+        <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" id="book-date" class="form-input">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Time</label>
+            <input type="time" id="book-time" class="form-input">
+        </div>
+        
+        <button class="cal-btn" onclick="confirmBooking()" style="margin-top: 10px;">Confirm Schedule</button>
+        <button onclick="closeBookingModal()" style="width: 100%; padding: 10px; border: none; background: transparent; margin-top: 10px; cursor: pointer; color: #64748B;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    let calendar; // FullCalendar instance
+    let selectedCall = null;
+    const API_BASE = "http://localhost:8000";
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initCalendar();
+        startPolling();
+    });
+
+    // --- FULLCALENDAR SETUP ---
+    function initCalendar() {
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            slotMinTime: '08:00:00',
+            slotMaxTime: '20:00:00',
+            height: '100%',
+            expandRows: true,
+            stickyHeaderDates: true,
+            events: `${API_BASE}/api/appointments`, // Fetch from API
+            eventColor: '#4F46E5',
+            eventTextColor: '#fff'
+        });
+        calendar.render();
+    }
+
+    // --- POLLING & DATA ---
+    function startPolling() {
+        fetchData();
+        setInterval(fetchData, 1000); // Poll every 1 second
+    }
+
+    async function fetchData() {
+        try {
+            const [callsRes, apptsRes] = await Promise.all([
+                fetch(`${API_BASE}/api/calls`),
+                fetch(`${API_BASE}/api/appointments`)
+            ]);
+            
+            const calls = await callsRes.json();
+            const appts = await apptsRes.json();
+            
+            updateStats(calls);
+            renderCalls(calls);
+            renderSidebarAppts(appts);
+        } catch(e) { console.error(e); }
+    }
+
+    function updateStats(calls) {
+        document.getElementById('stat-total').innerText = calls.length;
+        document.getElementById('stat-emergency').innerText = calls.filter(c => c.urgency === 'EMERGENCY').length;
+        document.getElementById('stat-priority').innerText = calls.filter(c => c.urgency === 'PRIORITY').length;
+        document.getElementById('stat-routine').innerText = calls.filter(c => c.urgency === 'ROUTINE').length;
+    }
+
+    function renderCalls(calls) {
+        const container = document.getElementById('calls-container');
+        
+        if(calls.length === 0) {
+            container.innerHTML = `<div style="text-align:center; padding: 40px; color:#94a3b8;">No active calls in queue</div>`;
+            return;
+        }
+
+        container.innerHTML = calls.reverse().map(call => `
+            <div class="call-card ${call.urgency} ${call.called_back ? 'resolved' : ''}" onclick="this.classList.toggle('expanded')">
+                <div class="card-top">
+                    <div>
+                        <div class="phone"><i class="fas fa-phone-alt" style="font-size:12px; margin-right:8px; opacity:0.6"></i> ${call.phone}</div>
+                        <div class="meta">${call.category || 'General'} • ${call.timestamp}</div>
+                    </div>
+                    <span class="tag tag-${call.urgency}">${call.urgency}</span>
+                </div>
+                
+                <div class="ai-box" onclick="event.stopPropagation()">
+                    <strong style="color:var(--primary)">AI Summary:</strong> ${call.summary}
+                    <div style="margin-top:8px; font-size:11px; opacity:0.8; font-style:italic">"${call.transcript.substring(0, 120)}..."</div>
+                    
+                    ${!call.called_back ? `
+                        <div class="actions">
+                            <button class="btn btn-outline" onclick="openBookingModal('${call.id}', '${call.phone}')">
+                                <i class="far fa-calendar-plus"></i> Schedule
+                            </button>
+                            <button class="btn btn-primary" onclick="markDone('${call.id}')">
+                                <i class="fas fa-check"></i> Done
+                            </button>
+                        </div>
+                    ` : `<div style="margin-top:10px; color:var(--success); font-weight:700; text-align:right;">✓ Resolved</div>`}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderSidebarAppts(appts) {
+        const container = document.getElementById('sidebar-appts');
+        if(appts.length === 0) {
+            container.innerHTML = `<div style="color:#94a3b8; font-size:13px; text-align:center;">No scheduled callbacks</div>`;
+            return;
+        }
+        
+        container.innerHTML = appts.slice(0, 5).map(a => {
+            const dateObj = new Date(a.start);
+            const timeStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const dateStr = dateObj.toLocaleDateString([], {month: 'short', day: 'numeric'});
+            return `
+                <div class="appt-item">
+                    <div class="appt-time">${dateStr} @ ${timeStr}</div>
+                    <div>${a.patient}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // --- MODAL ACTIONS ---
+    function openCalendarModal() {
+        document.getElementById('calendar-modal').classList.add('active');
+        setTimeout(() => calendar.updateSize(), 200); // Fix rendering glitch
+    }
+
+    function closeCalendarModal() {
+        document.getElementById('calendar-modal').classList.remove('active');
+    }
+
+    function openBookingModal(id, phone) {
+        selectedCall = { id, phone };
+        document.getElementById('booking-patient').innerText = `Patient: ${phone}`;
+        document.getElementById('book-date').valueAsDate = new Date();
+        document.getElementById('booking-modal').classList.add('active');
+    }
+
+    function closeBookingModal() {
+        document.getElementById('booking-modal').classList.remove('active');
+    }
+
+    async function confirmBooking() {
+        const date = document.getElementById('book-date').value;
+        const time = document.getElementById('book-time').value;
+        
+        if(!date || !time) return alert("Please select date and time");
+
+        await fetch(`${API_BASE}/api/appointments`, {
+            method: 'POST',
+            body: JSON.stringify({
+                call_id: selectedCall.id,
+                phone: selectedCall.phone,
+                date: date,
+                time: time
+            })
+        });
+
+        calendar.refetchEvents();
+        fetchData();
+        closeBookingModal();
+    }
+
+    async function markDone(id) {
+        await fetch(`${API_BASE}/api/calls/${id}/callback`, { method: 'POST' });
+        fetchData();
+    }
+</script>
+</body>
+</html>
